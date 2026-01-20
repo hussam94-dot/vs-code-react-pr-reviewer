@@ -6,7 +6,13 @@ export class GeminiService {
 
     constructor(apiKey: string) {
         this.genAI = new GoogleGenerativeAI(apiKey);
-        this.model = this.genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+        this.model = this.genAI.getGenerativeModel({
+            model: "gemini-flash-latest",
+            generationConfig: {
+                maxOutputTokens: 500,
+                temperature: 0.2
+            }
+        });
     }
 
     async testApiKey(): Promise<boolean> {
@@ -22,38 +28,23 @@ export class GeminiService {
     }
 
     async reviewCode(code: string): Promise<string> {
-        const prompt = `You are a Senior React.js Lead and Tech Architect.
+        const prompt = `Review this React code/diff for critical issues. JSON only.
 
-Review the following React code for React-specific anti-patterns and issues.
+Rules:
+1. Loops/Conditions: No hooks inside.
+2. Keys: Must use stable IDs in maps.
+3. Props: No direct mutation.
+4. State: No redundant state.
 
-**Critical Rules (return as "error"):**
-1. **Hooks Violations:** Hooks called inside loops/conditions, missing useEffect dependencies
-2. **Performance Issues:** Missing or incorrect key props in .map(), using index as key
-3. **Props Mutation:** Direct mutation of props (anti-pattern)
-
-**Best Practices (return as "warning"):**
-4. **State Management:** Unnecessary useState for values derivable from props
-5. **Component Size:** Components larger than 200 lines should be broken down
-6. **Modern React:** Missing useCallback on props, class components that should be functional
-7. **React 19 Features:** Opportunities to use useOptimistic or the new use() hook
-
-**IMPORTANT:** Return ONLY a JSON object in this exact format:
-\`\`\`json
+Format:
 {
-  "summary": "Brief health assessment (e.g., 'High-risk due to multiple hook violations')",
+  "summary": "Brief status",
   "diagnostics": [
-    {
-      "line": <line_number>,
-      "message": "<detailed explanation>",
-      "severity": "error" | "warning"
-    }
+    { "line": <num>, "message": "<str>", "severity": "error"|"warning" }
   ]
 }
-\`\`\`
 
-If no issues found, return: { "summary": "No issues found", "diagnostics": [] }
-
-Code to review:
+Code:
 ${code}
 `;
 
@@ -63,8 +54,14 @@ ${code}
             return response.text();
         } catch (error: any) {
             console.error('Error reviewing code:', error);
+
+            // Handle Rate Limits (429) & Overload (503)
+            if (error.message?.includes('429') || error.message?.includes('503')) {
+                throw new Error('QUOTA_FULL');
+            }
+
             const errorMessage = error?.message || error?.toString() || 'Unknown error';
-            throw new Error(`Failed to review code with Gemini: ${errorMessage}`);
+            throw new Error(`Gemini Error: ${errorMessage}`);
         }
     }
 }

@@ -1,8 +1,10 @@
 import * as vscode from 'vscode';
 import { getApiKey, setApiKey } from './services/auth';
 import { parseAIResponse } from './utils/parser';
+import * as cp from 'child_process';
+import * as util from 'util';
 
-console.log('Extension file is loading...');
+const exec = util.promisify(cp.exec);
 
 // Create diagnostic collection for React reviews
 let diagnosticCollection: vscode.DiagnosticCollection;
@@ -54,6 +56,20 @@ export function activate(context: vscode.ExtensionContext) {
         }
 
         console.log(`Health Score: ${score}%, Issues: ${issueCount}`);
+    }
+
+    async function getGitDiff(filePath: string): Promise<string> {
+        try {
+            // Get diff of the specific file (0 context lines to save tokens)
+            // git diff -U0 HEAD -- <file>
+            const { stdout } = await exec(`git diff -U0 HEAD -- "${filePath}"`, {
+                cwd: vscode.workspace.workspaceFolders?.[0].uri.fsPath
+            });
+            return stdout.trim();
+        } catch (error) {
+            console.warn('Git diff failed or no repo:', error);
+            return '';
+        }
     }
 
     // Command: Update API Key
@@ -128,22 +144,38 @@ export function activate(context: vscode.ExtensionContext) {
         }
 
         const document = editor.document;
-        const code = document.getText();
+        let codeToReview = "";
+        let contextMsg = "";
+
+        // Strategy: Diff -> Selection -> Error
+        const diff = await getGitDiff(document.fileName);
+        if (diff && diff.length > 0) {
+            codeToReview = diff;
+            contextMsg = `Auditing Git Diff...`;
+        } else {
+            const selection = editor.selection;
+            if (!selection.isEmpty) {
+                codeToReview = document.getText(selection);
+                contextMsg = `Auditing Selection...`;
+            } else {
+                vscode.window.showWarningMessage('No Uncommitted Changes. Please select a block of code to review.');
+                return;
+            }
+        }
 
         vscode.window.withProgress({
             location: vscode.ProgressLocation.Notification,
-            title: `Auditing ${document.fileName}...`,
+            title: contextMsg,
             cancellable: false
         }, async (progress) => {
             try {
                 console.log('Starting audit...');
                 const { GeminiService } = await import('./services/gemini-service');
-                console.log('GeminiService imported');
 
                 const service = new GeminiService(apiKey);
                 console.log('GeminiService created');
 
-                const aiResponse = await service.reviewCode(code);
+                const aiResponse = await service.reviewCode(codeToReview);
                 console.log('Review received, length:', aiResponse?.length);
 
                 if (!aiResponse || aiResponse.length === 0) {
@@ -196,7 +228,12 @@ export function activate(context: vscode.ExtensionContext) {
                 }
             } catch (error: any) {
                 console.error('Full error:', error);
-                vscode.window.showErrorMessage(`Error: ${error.message}`);
+
+                if (error.message === 'QUOTA_FULL') {
+                    vscode.window.showErrorMessage('⏳ Quota Full. Next available in ~1 minute.');
+                } else {
+                    vscode.window.showErrorMessage(`Error: ${error.message}`);
+                }
             }
         });
     });

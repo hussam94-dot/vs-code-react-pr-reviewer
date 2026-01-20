@@ -22,11 +22,11 @@ async function testGeminiAPI() {
             console.log(`  - ${model.name}`);
         });
 
-        // Now try gemini-2.5-flash (available for your API key)
-        console.log('\n--- Testing gemini-2.5-flash ---');
+        // Now try gemini-flash-latest (likely 1.5)
+        console.log('\n--- Testing gemini-flash-latest ---');
         const { GoogleGenerativeAI } = require('@google/generative-ai');
         const genAI = new GoogleGenerativeAI(API_KEY);
-        const geminiModel = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+        const geminiModel = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
         const result = await geminiModel.generateContent("Say 'API works!' in 3 words.");
         const text = (await result.response).text();
         console.log('✅ Response:', text);
