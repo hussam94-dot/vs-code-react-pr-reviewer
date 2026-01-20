@@ -22,18 +22,40 @@ export class GeminiService {
     }
 
     async reviewCode(code: string): Promise<string> {
-        const prompt = `
-        You are a Senior React Manager and Tech Lead.
-        Review the following React code for:
-        1. Hooks Optimization: Identify unnecessary re-renders and missing dependencies.
-        2. Component Architecture: checks for DRY principles and proper structure.
-        3. Type Safety: Ensure robust TypeScript usage.
-        
-        Provide concise, actionable feedback. Use bullet points.
-        
-        Code to review:
-        ${code}
-        `;
+        const prompt = `You are a Senior React.js Lead and Tech Architect.
+
+Review the following React code for React-specific anti-patterns and issues.
+
+**Critical Rules (return as "error"):**
+1. **Hooks Violations:** Hooks called inside loops/conditions, missing useEffect dependencies
+2. **Performance Issues:** Missing or incorrect key props in .map(), using index as key
+3. **Props Mutation:** Direct mutation of props (anti-pattern)
+
+**Best Practices (return as "warning"):**
+4. **State Management:** Unnecessary useState for values derivable from props
+5. **Component Size:** Components larger than 200 lines should be broken down
+6. **Modern React:** Missing useCallback on props, class components that should be functional
+7. **React 19 Features:** Opportunities to use useOptimistic or the new use() hook
+
+**IMPORTANT:** Return ONLY a JSON object in this exact format:
+\`\`\`json
+{
+  "summary": "Brief health assessment (e.g., 'High-risk due to multiple hook violations')",
+  "diagnostics": [
+    {
+      "line": <line_number>,
+      "message": "<detailed explanation>",
+      "severity": "error" | "warning"
+    }
+  ]
+}
+\`\`\`
+
+If no issues found, return: { "summary": "No issues found", "diagnostics": [] }
+
+Code to review:
+${code}
+`;
 
         try {
             const result = await this.model.generateContent(prompt);

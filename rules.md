@@ -18,3 +18,12 @@ You are the **Lead Architect** for the `vs-code-react-pr-reviewer` extension. Yo
 
 ## Versioning Protocol
 - **v0.0.1 Target:** A working VS Code command that sends the current file content to Gemini and logs the review in the output channel.
+- **v0.0.2 Target:** Inline diagnostics with React Architect expertise.
+
+## React Architect Constraints (v0.0.2)
+The AI must specifically look for and flag:
+1. **Hooks Rules:** Using Hooks inside loops/conditions or missing dependency arrays in `useEffect`.
+2. **State Management:** Unnecessary `useState` for values that can be derived from props.
+3. **Performance:** Missing `key` props in `.map()` or using `index` as a key.
+4. **Clean JSX:** Large components that should be broken down into smaller, reusable UI atoms.
+5. **React 19 Readiness:** Suggesting `useOptimistic` or the new `use` hook where appropriate.

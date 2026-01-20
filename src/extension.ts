@@ -1,11 +1,60 @@
 import * as vscode from 'vscode';
 import { getApiKey, setApiKey } from './services/auth';
+import { parseAIResponse } from './utils/parser';
 
 console.log('Extension file is loading...');
+
+// Create diagnostic collection for React reviews
+let diagnosticCollection: vscode.DiagnosticCollection;
 
 export function activate(context: vscode.ExtensionContext) {
     console.log('Congratulations, your extension "vs-code-react-pr-reviewer" is now active!');
     vscode.window.showInformationMessage('VS Code React PR Reviewer is now active!', { modal: true });
+
+    // Initialize diagnostic collection
+    diagnosticCollection = vscode.languages.createDiagnosticCollection('react-manager');
+
+    /**
+     * Calculate health score based on diagnostics
+     * Start at 100, subtract 15 per error, 5 per warning, minimum 0
+     */
+    function calculateHealthScore(diagnostics: vscode.Diagnostic[]): number {
+        let score = 100;
+
+        for (const diagnostic of diagnostics) {
+            if (diagnostic.severity === vscode.DiagnosticSeverity.Error) {
+                score -= 15;
+            } else if (diagnostic.severity === vscode.DiagnosticSeverity.Warning) {
+                score -= 5;
+            }
+        }
+
+        return Math.max(0, score);
+    }
+
+    /**
+     * Show health score notification with color coding
+     */
+    function showHealthScoreNotification(score: number, issueCount: number) {
+        let emoji: string;
+        let message: string;
+
+        if (score > 80) {
+            emoji = '🟢';
+            message = `${emoji} Health Score: ${score}%. Great job!`;
+            vscode.window.showInformationMessage(message);
+        } else if (score >= 50) {
+            emoji = '🟡';
+            message = `${emoji} Health Score: ${score}%. Needs minor refactoring.`;
+            vscode.window.showWarningMessage(message);
+        } else {
+            emoji = '🔴';
+            message = `${emoji} Health Score: ${score}%. Critical issues found.`;
+            vscode.window.showErrorMessage(message);
+        }
+
+        console.log(`Health Score: ${score}%, Issues: ${issueCount}`);
+    }
 
     // Command: Update API Key
     const updateApiKeyCommand = vscode.commands.registerCommand('reviewer.updateApiKey', async () => {
@@ -94,20 +143,57 @@ export function activate(context: vscode.ExtensionContext) {
                 const service = new GeminiService(apiKey);
                 console.log('GeminiService created');
 
-                const review = await service.reviewCode(code);
-                console.log('Review received, length:', review?.length);
+                const aiResponse = await service.reviewCode(code);
+                console.log('Review received, length:', aiResponse?.length);
 
-                if (!review || review.length === 0) {
+                if (!aiResponse || aiResponse.length === 0) {
                     vscode.window.showWarningMessage('Received empty response from Gemini');
                     return;
                 }
 
-                // Create a new untitled document to show the review
-                const doc = await vscode.workspace.openTextDocument({ content: review, language: 'markdown' });
-                console.log('Document created');
+                // Try to parse as JSON diagnostics
+                const aiReview = parseAIResponse(aiResponse);
+                console.log(`Parsed ${aiReview.diagnostics.length} diagnostic items`);
+                if (aiReview.summary) {
+                    console.log('AI Summary:', aiReview.summary);
+                }
 
-                await vscode.window.showTextDocument(doc);
-                console.log('Document shown');
+                if (aiReview.diagnostics.length > 0) {
+                    // Convert to VS Code Diagnostics
+                    const diagnostics: vscode.Diagnostic[] = aiReview.diagnostics.map(item => {
+                        // Line numbers are 0-indexed in VS Code
+                        const lineIndex = Math.max(0, item.line - 1);
+                        const line = document.lineAt(Math.min(lineIndex, document.lineCount - 1));
+
+                        // Create range covering the entire line
+                        const range = new vscode.Range(
+                            line.range.start,
+                            line.range.end
+                        );
+
+                        // Map severity
+                        const severity = item.severity === 'error'
+                            ? vscode.DiagnosticSeverity.Error
+                            : vscode.DiagnosticSeverity.Warning;
+
+                        return new vscode.Diagnostic(range, item.message, severity);
+                    });
+
+                    // Apply diagnostics to the document
+                    diagnosticCollection.set(document.uri, diagnostics);
+
+                    // Calculate and show health score
+                    const score = calculateHealthScore(diagnostics);
+                    showHealthScoreNotification(score, diagnostics.length);
+                } else {
+                    // Fallback: show as markdown if JSON parsing failed
+                    console.log('No diagnostics parsed, showing as markdown fallback');
+                    const doc = await vscode.workspace.openTextDocument({
+                        content: aiResponse,
+                        language: 'markdown'
+                    });
+                    await vscode.window.showTextDocument(doc);
+                }
             } catch (error: any) {
                 console.error('Full error:', error);
                 vscode.window.showErrorMessage(`Error: ${error.message}`);
@@ -116,6 +202,18 @@ export function activate(context: vscode.ExtensionContext) {
     });
 
     context.subscriptions.push(updateApiKeyCommand, testApiKeyCommand, auditFileCommand);
+    context.subscriptions.push(diagnosticCollection);
+
+    // Clear diagnostics when document is closed
+    context.subscriptions.push(
+        vscode.workspace.onDidCloseTextDocument(doc => {
+            diagnosticCollection.delete(doc.uri);
+        })
+    );
 }
 
-export function deactivate() { }
+export function deactivate() {
+    if (diagnosticCollection) {
+        diagnosticCollection.dispose();
+    }
+}
