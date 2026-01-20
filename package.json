@@ -1,0 +1,50 @@
+{
+  "name": "vs-code-react-pr-reviewer",
+  "displayName": "VS Code React PR Reviewer",
+  "description": "AI-Powered React PR Reviewer",
+  "version": "0.0.1",
+  "publisher": "react-team",
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "*"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "react-review.auditFile",
+        "title": "ReactReview: Audit File"
+      },
+      {
+        "command": "reviewer.updateApiKey",
+        "title": "ReactReview: Update API Key"
+      },
+      {
+        "command": "reviewer.testApiKey",
+        "title": "ReactReview: Test API Key"
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile && npm run lint",
+    "lint": "eslint src",
+    "test": "vscode-test"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/vscode": "^1.80.0",
+    "eslint": "^8.0.0",
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "@google/generative-ai": "^0.24.1"
+  }
+}
