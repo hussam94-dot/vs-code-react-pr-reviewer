@@ -7,6 +7,7 @@ interface UserData {
 }
 
 export default function UserProfile() {
+    console.log("test")
     const [user, setUser] = useState<UserData | null>(null);
     const [loading, setLoading] = useState(true);
     const [count, setCount] = useState(0);
