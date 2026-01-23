@@ -6,7 +6,7 @@
 ---
 
 ## 🚀 Overview
-This extension is designed for React Team Managers to streamline Pull Request reviews. It leverages **Antigravity** and **Gemini 1.5/2.0** to provide architectural feedback, catch performance bottlenecks, and ensure team coding standards are met directly within VS Code.
+This extension is designed for React Team Managers to streamline Pull Request reviews. It leverages **ChatGpt** and **Gemini 1.5/2.0** to provide architectural feedback, catch performance bottlenecks, and ensure team coding standards are met directly within VS Code.
 
 ## 🏗️ Versioning Roadmap
 
@@ -27,7 +27,7 @@ This extension is designed for React Team Managers to streamline Pull Request re
 
 ---
 
-## 🤖 AI Prompt Logic (Antigravity Integration)
+## 🤖 AI Prompt Logic (AI Integration)
 The extension uses a specialized **Senior React Manager** persona. The agent is instructed to focus on:
 1. **Hooks Optimization:** Identifying unnecessary re-renders.
 2. **Component Architecture:** Enforcing DRY principles and proper file structure.
@@ -35,8 +35,8 @@ The extension uses a specialized **Senior React Manager** persona. The agent is 
 
 ---
 
-## 🛠️ Setup for Antigravity
-To work on this project with the Antigravity agent, initialize the agent with the following context:
+## 🛠️ Setup for AI Agent
+To work on this project with the AI agent, initialize the agent with the following context:
 
 > "Agent, we are building a VS Code extension in this repo. We are currently at v0.0.1. 
 > Your first task is to scaffold the extension and set up the connection to Gemini. 
