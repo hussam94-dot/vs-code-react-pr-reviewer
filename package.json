@@ -2,7 +2,7 @@
   "name": "vs-code-react-pr-reviewer",
   "displayName": "VS Code React PR Reviewer",
   "description": "AI-Powered React PR Reviewer",
-  "version": "0.0.3",
+  "version": "0.0.5",
   "publisher": "react-team",
   "engines": {
     "vscode": "^1.80.0"
@@ -15,6 +15,24 @@
   ],
   "main": "./out/extension.js",
   "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "react-reviewer-view-container",
+          "title": "React Reviewer",
+          "icon": "media/shield.svg"
+        }
+      ]
+    },
+    "views": {
+      "react-reviewer-view-container": [
+        {
+          "type": "webview",
+          "id": "react-reviewer-sidebar",
+          "name": "Branch Manager"
+        }
+      ]
+    },
     "commands": [
       {
         "command": "react-review.auditFile",

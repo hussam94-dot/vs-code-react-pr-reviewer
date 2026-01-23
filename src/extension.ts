@@ -3,6 +3,7 @@ import { getApiKey, setApiKey } from './services/auth';
 import { parseAIResponse } from './utils/parser';
 import * as cp from 'child_process';
 import * as util from 'util';
+import { SidebarProvider } from './sidebarProvider';
 
 const exec = util.promisify(cp.exec);
 
@@ -11,14 +12,34 @@ let diagnosticCollection: vscode.DiagnosticCollection;
 
 export function activate(context: vscode.ExtensionContext) {
     console.log('Congratulations, your extension "vs-code-react-pr-reviewer" is now active!');
-    vscode.window.showInformationMessage('VS Code React PR Reviewer is now active!', { modal: true });
+
+    // Helper to get branches (hoisted)
+    async function getBranches(): Promise<string[]> {
+        try {
+            const { stdout } = await exec('git branch --format="%(refname:short)"', {
+                cwd: vscode.workspace.workspaceFolders?.[0].uri.fsPath
+            });
+            return stdout.split('\n').map(b => b.trim()).filter(b => b.length > 0);
+        } catch (e) {
+            console.error('Failed to get branches', e);
+            return [];
+        }
+    }
+
+    // Register Sidebar Provider
+    const sidebarProvider = new SidebarProvider(context.extensionUri, getBranches);
+    context.subscriptions.push(
+        vscode.window.registerWebviewViewProvider(
+            "react-reviewer-sidebar",
+            sidebarProvider
+        )
+    );
 
     // Initialize diagnostic collection
     diagnosticCollection = vscode.languages.createDiagnosticCollection('react-manager');
 
     /**
      * Calculate health score based on diagnostics
-     * Start at 100, subtract 15 per error, 5 per warning, minimum 0
      */
     function calculateHealthScore(diagnostics: vscode.Diagnostic[]): number {
         let score = 100;
@@ -41,27 +62,25 @@ export function activate(context: vscode.ExtensionContext) {
         let emoji: string;
         let message: string;
 
-        if (score > 80) {
+        if (score >= 80) {
             emoji = '🟢';
-            message = `${emoji} Health Score: ${score}%. Great job!`;
-            vscode.window.showInformationMessage(message);
+            message = 'Great job! Code is healthy.';
         } else if (score >= 50) {
             emoji = '🟡';
-            message = `${emoji} Health Score: ${score}%. Needs minor refactoring.`;
-            vscode.window.showWarningMessage(message);
+            message = 'Warning: cleanup recommended.';
         } else {
             emoji = '🔴';
-            message = `${emoji} Health Score: ${score}%. Critical issues found.`;
-            vscode.window.showErrorMessage(message);
+            message = 'Critical: Immediate refactor needed!';
         }
 
+        vscode.window.showInformationMessage(
+            `${emoji} Health Score: ${score}/100 (${issueCount} issues)\n${message}`
+        );
         console.log(`Health Score: ${score}%, Issues: ${issueCount}`);
     }
 
     async function getGitDiff(filePath: string): Promise<string> {
         try {
-            // Get diff of the specific file (0 context lines to save tokens)
-            // git diff -U0 HEAD -- <file>
             const { stdout } = await exec(`git diff -U0 HEAD -- "${filePath}"`, {
                 cwd: vscode.workspace.workspaceFolders?.[0].uri.fsPath
             });
@@ -71,6 +90,8 @@ export function activate(context: vscode.ExtensionContext) {
             return '';
         }
     }
+
+
 
     // Command: Update API Key
     const updateApiKeyCommand = vscode.commands.registerCommand('reviewer.updateApiKey', async () => {
@@ -169,41 +190,26 @@ export function activate(context: vscode.ExtensionContext) {
             cancellable: false
         }, async (progress) => {
             try {
-                console.log('Starting audit...');
                 const { GeminiService } = await import('./services/gemini-service');
-
                 const service = new GeminiService(apiKey);
-                console.log('GeminiService created');
 
-                const aiResponse = await service.reviewCode(codeToReview);
-                console.log('Review received, length:', aiResponse?.length);
+                const aiResponse = await service.reviewCode(codeToReview); // Use filtered code
 
                 if (!aiResponse || aiResponse.length === 0) {
                     vscode.window.showWarningMessage('Received empty response from Gemini');
                     return;
                 }
 
-                // Try to parse as JSON diagnostics
                 const aiReview = parseAIResponse(aiResponse);
-                console.log(`Parsed ${aiReview.diagnostics.length} diagnostic items`);
-                if (aiReview.summary) {
-                    console.log('AI Summary:', aiReview.summary);
-                }
 
                 if (aiReview.diagnostics.length > 0) {
                     // Convert to VS Code Diagnostics
                     const diagnostics: vscode.Diagnostic[] = aiReview.diagnostics.map(item => {
-                        // Line numbers are 0-indexed in VS Code
                         const lineIndex = Math.max(0, item.line - 1);
                         const line = document.lineAt(Math.min(lineIndex, document.lineCount - 1));
 
-                        // Create range covering the entire line
-                        const range = new vscode.Range(
-                            line.range.start,
-                            line.range.end
-                        );
+                        const range = new vscode.Range(line.range.start, line.range.end);
 
-                        // Map severity
                         const severity = item.severity === 'error'
                             ? vscode.DiagnosticSeverity.Error
                             : vscode.DiagnosticSeverity.Warning;
@@ -211,24 +217,15 @@ export function activate(context: vscode.ExtensionContext) {
                         return new vscode.Diagnostic(range, item.message, severity);
                     });
 
-                    // Apply diagnostics to the document
                     diagnosticCollection.set(document.uri, diagnostics);
 
-                    // Calculate and show health score
                     const score = calculateHealthScore(diagnostics);
                     showHealthScoreNotification(score, diagnostics.length);
                 } else {
-                    // Fallback: show as markdown if JSON parsing failed
-                    console.log('No diagnostics parsed, showing as markdown fallback');
-                    const doc = await vscode.workspace.openTextDocument({
-                        content: aiResponse,
-                        language: 'markdown'
-                    });
-                    await vscode.window.showTextDocument(doc);
+                    vscode.window.showInformationMessage('✅ No issues found!');
                 }
             } catch (error: any) {
                 console.error('Full error:', error);
-
                 if (error.message === 'QUOTA_FULL') {
                     vscode.window.showErrorMessage('⏳ Quota Full. Next available in ~1 minute.');
                 } else {
@@ -238,7 +235,49 @@ export function activate(context: vscode.ExtensionContext) {
         });
     });
 
-    context.subscriptions.push(updateApiKeyCommand, testApiKeyCommand, auditFileCommand);
+    // Command: Audit Branch Diff
+    const auditBranchDiffCommand = vscode.commands.registerCommand('react-review.auditBranchDiff', async (baseBranch: string, featureBranch: string) => {
+        const workspacePath = vscode.workspace.workspaceFolders?.[0].uri.fsPath;
+        if (!workspacePath) return;
+
+        vscode.window.withProgress({
+            location: vscode.ProgressLocation.Notification,
+            title: `Auditing Diff (${baseBranch}..${featureBranch})...`,
+            cancellable: false
+        }, async () => {
+            try {
+                // Get Diff
+                const { stdout: diff } = await exec(`git diff ${baseBranch}..${featureBranch}`, { cwd: workspacePath });
+
+                if (!diff || diff.trim().length === 0) {
+                    vscode.window.showInformationMessage('No changes found between these branches.');
+                    return;
+                }
+
+                const { GeminiService } = await import('./services/gemini-service');
+                const apiKey = await getApiKey(context);
+                if (!apiKey) {
+                    vscode.window.showErrorMessage('API Key not set.');
+                    return;
+                }
+
+                const service = new GeminiService(apiKey);
+                const aiResponse = await service.reviewCode(diff);
+
+                // Show as markdown report
+                const doc = await vscode.workspace.openTextDocument({
+                    content: aiResponse,
+                    language: 'markdown'
+                });
+                await vscode.window.showTextDocument(doc);
+
+            } catch (error: any) {
+                vscode.window.showErrorMessage(`Error: ${error.message}`);
+            }
+        });
+    });
+
+    context.subscriptions.push(updateApiKeyCommand, testApiKeyCommand, auditFileCommand, auditBranchDiffCommand);
     context.subscriptions.push(diagnosticCollection);
 
     // Clear diagnostics when document is closed
@@ -247,6 +286,14 @@ export function activate(context: vscode.ExtensionContext) {
             diagnosticCollection.delete(doc.uri);
         })
     );
+
+    // Populate branches initially
+    setTimeout(async () => {
+        const branches = await getBranches();
+        if (sidebarProvider._view) {
+            sidebarProvider._view.webview.postMessage({ type: 'updateBranches', branches });
+        }
+    }, 2000);
 }
 
 export function deactivate() {
