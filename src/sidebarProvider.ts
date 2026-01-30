@@ -34,7 +34,9 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
                     vscode.commands.executeCommand(
                         "react-review.auditBranchDiff",
                         data.baseBranch,
-                        data.featureBranch
+                        data.featureBranch,
+                        data.orModel,
+                        data.orKey
                     );
                     break;
                 }
