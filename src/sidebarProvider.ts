@@ -80,6 +80,8 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
           select { width: 100%; padding: 5px; background: var(--vscode-dropdown-background); color: var(--vscode-dropdown-foreground); border: 1px solid var(--vscode-dropdown-border); }
           button { width: 100%; padding: 8px; background: var(--vscode-button-background); color: var(--vscode-button-foreground); border: none; cursor: pointer; }
           button:hover { background: var(--vscode-button-hoverBackground); }
+          .input-group { margin-bottom: 15px; border-top: 1px solid var(--vscode-dropdown-border); padding-top: 10px; }
+          input { width: 100%; padding: 5px; background: var(--vscode-input-background); color: var(--vscode-input-foreground); border: 1px solid var(--vscode-input-border); margin-bottom: 5px; box-sizing: border-box; }
         </style>
 			</head>
 			<body>
@@ -100,6 +102,12 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
           </select>
         </div>
 
+        <div class="input-group">
+          <label>OpenRouter Configuration (Optional)</label>
+          <input type="text" id="or-model" placeholder="Model (e.g., google/gemini-flash-1.5)" />
+          <input type="password" id="or-key" placeholder="OpenRouter API Key" />
+        </div>
+
         <button id="run-review">Run AI Review</button>
 
         <script>
@@ -111,11 +119,15 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
           document.getElementById('run-review').addEventListener('click', () => {
               const baseBranch = document.getElementById('base-branch').value;
               const featureBranch = document.getElementById('feature-branch').value || 'HEAD';
+              const orModel = document.getElementById('or-model').value;
+              const orKey = document.getElementById('or-key').value;
               
               vscode.postMessage({
                   type: 'onRunReview',
                   baseBranch: baseBranch,
-                  featureBranch: featureBranch
+                  featureBranch: featureBranch,
+                  orModel: orModel,
+                  orKey: orKey
               });
           });
 

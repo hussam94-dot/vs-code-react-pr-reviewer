@@ -236,7 +236,7 @@ export function activate(context: vscode.ExtensionContext) {
     });
 
     // Command: Audit Branch Diff
-    const auditBranchDiffCommand = vscode.commands.registerCommand('react-review.auditBranchDiff', async (baseBranch: string, featureBranch: string) => {
+    const auditBranchDiffCommand = vscode.commands.registerCommand('react-review.auditBranchDiff', async (baseBranch: string, featureBranch: string, orModel?: string, orKey?: string) => {
         const workspacePath = vscode.workspace.workspaceFolders?.[0].uri.fsPath;
         if (!workspacePath) return;
 
@@ -254,15 +254,23 @@ export function activate(context: vscode.ExtensionContext) {
                     return;
                 }
 
-                const { GeminiService } = await import('./services/gemini-service');
-                const apiKey = await getApiKey(context);
-                if (!apiKey) {
-                    vscode.window.showErrorMessage('API Key not set.');
-                    return;
-                }
+                let aiResponse: string;
 
-                const service = new GeminiService(apiKey);
-                const aiResponse = await service.reviewCode(diff);
+                if (orKey && orModel) {
+                    const { OpenRouterService } = await import('./services/openrouter-service');
+                    const service = new OpenRouterService(orKey, orModel);
+                    aiResponse = await service.reviewCode(diff);
+                } else {
+                    const { GeminiService } = await import('./services/gemini-service');
+                    const apiKey = await getApiKey(context);
+                    if (!apiKey) {
+                        vscode.window.showErrorMessage('API Key not set.');
+                        return;
+                    }
+
+                    const service = new GeminiService(apiKey);
+                    aiResponse = await service.reviewCode(diff);
+                }
 
                 // Show as markdown report
                 const doc = await vscode.workspace.openTextDocument({
