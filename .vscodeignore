@@ -1,0 +1,17 @@
+.git
+.gitignore
+.vscode
+.gemini
+test-samples
+src
+tsconfig.json
+package-lock.json
+*.map
+**/*.ts
+!out/*.js
+!out/**/*.js
+**/*.test.js
+test-api.js
+rules.md
+README.md
+!node_modules
