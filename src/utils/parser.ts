@@ -8,9 +8,18 @@ export interface DiagnosticItem {
     severity: 'error' | 'warning' | 'info';
 }
 
+export interface OverallQuality {
+    score: number;
+    maintainability: 'poor' | 'fair' | 'good' | 'excellent';
+    complexity: 'low' | 'medium' | 'high';
+}
+
 export interface AIReviewResponse {
     diagnostics: DiagnosticItem[];
     summary?: string;
+    overall_quality?: OverallQuality;
+    strengths?: string[];
+    improvements?: string[];
 }
 
 /**
@@ -23,35 +32,34 @@ export function parseAIResponse(text: string): AIReviewResponse {
 
         if (jsonMatch) {
             const parsed = JSON.parse(jsonMatch[1]);
-
-            // Check if it's an object with diagnostics array
-            if (parsed.diagnostics && Array.isArray(parsed.diagnostics)) {
-                return {
-                    diagnostics: validateDiagnostics(parsed.diagnostics),
-                    summary: parsed.summary
-                };
-            }
-
-            // Otherwise assume it's just the diagnostics array
-            return { diagnostics: validateDiagnostics(parsed) };
+            return normalizeResponse(parsed);
         }
 
         // Try to parse as plain JSON
         const parsed = JSON.parse(text);
+        return normalizeResponse(parsed);
 
-        if (parsed.diagnostics && Array.isArray(parsed.diagnostics)) {
-            return {
-                diagnostics: validateDiagnostics(parsed.diagnostics),
-                summary: parsed.summary
-            };
-        }
-
-        return { diagnostics: validateDiagnostics(parsed) };
     } catch (error) {
         console.error('Failed to parse AI response as JSON:', error);
         return { diagnostics: [] };
     }
 }
+
+function normalizeResponse(parsed: any): AIReviewResponse {
+    const diagnostics = (parsed.diagnostics && Array.isArray(parsed.diagnostics))
+        ? validateDiagnostics(parsed.diagnostics)
+        : (Array.isArray(parsed) ? validateDiagnostics(parsed) : []);
+
+    return {
+        diagnostics,
+        summary: parsed.summary,
+        overall_quality: parsed.overall_quality,
+        strengths: parsed.strengths,
+        improvements: parsed.improvements
+    };
+}
+
+
 /**
  * Validates and filters diagnostic items
  */

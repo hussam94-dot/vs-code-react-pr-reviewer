@@ -4,6 +4,7 @@ import { parseAIResponse } from './utils/parser';
 import * as cp from 'child_process';
 import * as util from 'util';
 import { SidebarProvider } from './sidebarProvider';
+import { ReviewResultPanel } from './panels/ReviewResultPanel';
 
 const exec = util.promisify(cp.exec);
 
@@ -274,12 +275,11 @@ export function activate(context: vscode.ExtensionContext) {
                     aiResponse = await service.reviewCode(diff);
                 }
 
-                // Show as markdown report
-                const doc = await vscode.workspace.openTextDocument({
-                    content: aiResponse,
-                    language: 'markdown'
-                });
-                await vscode.window.showTextDocument(doc);
+                // Parse the response
+                const reviewData = parseAIResponse(aiResponse);
+
+                // Show in Rich Webview
+                ReviewResultPanel.show(context.extensionUri, reviewData);
 
             } catch (error: any) {
                 vscode.window.showErrorMessage(`Error: ${error.message}`);

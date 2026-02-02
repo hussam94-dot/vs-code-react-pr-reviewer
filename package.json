@@ -2,7 +2,7 @@
   "name": "vs-code-react-pr-reviewer",
   "displayName": "VS Code React PR Reviewer",
   "description": "AI-Powered React PR Reviewer",
-  "version": "0.0.9",
+  "version": "0.0.10",
   "publisher": "react-team",
   "repository": {
     "type": "git",
