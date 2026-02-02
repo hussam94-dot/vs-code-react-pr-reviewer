@@ -12,7 +12,7 @@ const exec = util.promisify(cp.exec);
 let diagnosticCollection: vscode.DiagnosticCollection;
 
 export function activate(context: vscode.ExtensionContext) {
-    console.log('Congratulations, your extension "vs-code-react-pr-reviewer" is now active!');
+    console.log('Congratulations, your extension "codehawk-ai" is now active!');
 
     // Helper to get branches (hoisted)
     async function getBranches(): Promise<string[]> {
@@ -37,7 +37,7 @@ export function activate(context: vscode.ExtensionContext) {
     );
 
     // Initialize diagnostic collection
-    diagnosticCollection = vscode.languages.createDiagnosticCollection('react-manager');
+    diagnosticCollection = vscode.languages.createDiagnosticCollection('codehawk');
 
     /**
      * Calculate health score based on diagnostics
@@ -139,8 +139,9 @@ export function activate(context: vscode.ExtensionContext) {
                 const service = new GeminiService(apiKey);
                 await service.testApiKey();
                 vscode.window.showInformationMessage('✅ API Key is valid and working!');
-            } catch (error: any) {
-                vscode.window.showErrorMessage(`❌ API Key test failed: ${error.message}`);
+            } catch (error) {
+                const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+                vscode.window.showErrorMessage(`❌ API Key test failed: ${errorMessage}`);
             }
         });
     });
@@ -227,12 +228,13 @@ export function activate(context: vscode.ExtensionContext) {
                 } else {
                     vscode.window.showInformationMessage('✅ No issues found!');
                 }
-            } catch (error: any) {
+            } catch (error) {
                 console.error('Full error:', error);
-                if (error.message === 'QUOTA_FULL') {
+                const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+                if (errorMessage === 'QUOTA_FULL') {
                     vscode.window.showErrorMessage('⏳ Quota Full. Next available in ~1 minute.');
                 } else {
-                    vscode.window.showErrorMessage(`Error: ${error.message}`);
+                    vscode.window.showErrorMessage(`Error: ${errorMessage}`);
                 }
             }
         });
@@ -241,7 +243,7 @@ export function activate(context: vscode.ExtensionContext) {
     // Command: Audit Branch Diff
     const auditBranchDiffCommand = vscode.commands.registerCommand('react-review.auditBranchDiff', async (baseBranch: string, featureBranch: string, orModel?: string, orKey?: string) => {
         const workspacePath = vscode.workspace.workspaceFolders?.[0].uri.fsPath;
-        if (!workspacePath) return;
+        if (!workspacePath) { return; }
 
         vscode.window.withProgress({
             location: vscode.ProgressLocation.Notification,
@@ -281,8 +283,9 @@ export function activate(context: vscode.ExtensionContext) {
                 // Show in Rich Webview
                 ReviewResultPanel.show(context.extensionUri, reviewData);
 
-            } catch (error: any) {
-                vscode.window.showErrorMessage(`Error: ${error.message}`);
+            } catch (error) {
+                const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+                vscode.window.showErrorMessage(`Error: ${errorMessage}`);
             }
         });
     });

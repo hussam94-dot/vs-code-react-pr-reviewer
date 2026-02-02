@@ -1,60 +1,55 @@
-# VS Code React PR Reviewer (AI-Powered)
-**Version:** v0.0.10
-**Author:** React Team Manager  
-**Repository:** git@github:tsrajandavid/vs-code-react-pr-reviewer.git
+# CodeHawk AI
+> **Eagle eyes for your code 🦅**
+
+**CodeHawk AI** is your intelligent coding companion, designed to streamline Pull Request reviews and elevate code quality. It catches bugs, security vulnerabilities, and performance bottlenecks before they merge.
 
 ---
 
-## 🚀 Overview
-This extension is designed for React Team Managers to streamline Pull Request reviews. It leverages **OpenRouter** and **Gemini 1.5/2.0** to provide architectural feedback, catch performance bottlenecks, and ensure team coding standards are met directly within VS Code.
+## ✨ Key Features
 
-## 🏗️ Versioning Roadmap
+### 🔍 AI-Powered Code Audits
+Instantly analyze your current file or git diff using advanced AI models (Gemini 1.5 Pro, OpenRouter).
 
-### [v0.0.10] - Rich Review UI (Current)
-- [x] Scaffold VS Code Extension project (TypeScript).
-- [x] Implement Gemini & OpenRouter API Integration.
-- [x] Create a basic command `ReactReview: Audit File`.
-- [x] Integration with `git diff`.
-- [x] **Rich Webview UI** for Code Review Results (Scores, Metrics, Charts).
+### 🛡️ Security & Performance
+- Detect potential security flaws (e.g., hardcoded secrets, injection risks).
+- Identify performance killers (unnecessary re-renders, expensive operations).
+
+### 📊 Rich Review Dashboard
+View a dedicated "CodeHawk Manager" sidebar with:
+- **Health Score**: A quantifier of your code quality (0-100).
+- **Issue Breakdown**: Categorized by Severity (Critical, Warning, Info).
+- **Review Summary**: Actionable insights on how to improve.
+
+### 🧹 Clean Code Enforcement
+Ensure your code adheres to best practices, consistent naming conventions, and modern architectural patterns.
 
 ---
 
-## 🛠️ Build & Development
+## 🚀 Getting Started
 
-### Prerequisites
-- Node.js (v18+)
-- VS Code
+### 1. Installation
+Install **CodeHawk AI** from the VS Code Marketplace.
 
-### 1. Setup
-```bash
-git clone git@github.com:tsrajandavid/vs-code-react-pr-reviewer.git
-cd vs-code-react-pr-reviewer
-npm install
-```
+### 2. Configuration
+You need an API Key to power the AI engine.
+1.  Open the Command Palette (`Ctrl+Shift+P` / `Cmd+Shift+P`).
+2.  Run **CodeHawk: Update API Key**.
+3.  Enter your Google Gemini API Key.
 
-### 2. Development (Run Locally)
-- Press `F5` in VS Code to launch the **Extension Development Host**.
-- OR run the watch command for hot-reloading:
-```bash
-npm run watch
-```
+### 3. Usage
+- **Audit Current File**: Open a file and run **CodeHawk: Audit File**.
+- **Review Changes**: The extension can automatically detect changes in your git branch and offer a review.
+- **Interactive Reports**: Check the **CodeHawk Manager** sidebar for detailed reports.
 
-### 3. Build & Compile
-To compile the TypeScript source code:
-```bash
-npm run compile
-```
+---
 
-### 4. Package Extension (.vsix)
-To create a distributable `.vsix` file:
-```bash
-npx vsce package
-```
-*Output: `vs-code-react-pr-reviewer-0.0.10.vsix`*
+## 🛠️ Commands
+- `CodeHawk: Audit File` - Analyze the currently open file.
+- `CodeHawk: Update API Key` - Set or change your AI provider API key.
+- `CodeHawk: Test API Key` - Verify your connection to the AI service.
 
-### 5. Install Extension
-You can install the `.vsix` manually in VS Code:
-1. Go to **Extensions** sidebar.
-2. Click the `...` menu (Views and More Actions).
-3. Select **Install from VSIX...**.
-4. Choose the generated `.vsix` file.
+---
+
+## ⚖️ License
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+

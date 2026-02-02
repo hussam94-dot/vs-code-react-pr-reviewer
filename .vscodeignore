@@ -13,5 +13,6 @@ package-lock.json
 **/*.test.js
 test-api.js
 rules.md
-README.md
+!README.md
+!LICENSE
 !node_modules
