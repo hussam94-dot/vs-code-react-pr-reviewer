@@ -1,14 +1,16 @@
 import * as vscode from "vscode";
+import { getOpenRouterKey, setOpenRouterKey } from "./services/auth";
 
 export class SidebarProvider implements vscode.WebviewViewProvider {
     _view?: vscode.WebviewView;
 
     constructor(
         private readonly _extensionUri: vscode.Uri,
-        private readonly _getBranches: () => Promise<string[]>
+        private readonly _getBranches: () => Promise<string[]>,
+        private readonly _context: vscode.ExtensionContext
     ) { }
 
-    public resolveWebviewView(webviewView: vscode.WebviewView) {
+    public async resolveWebviewView(webviewView: vscode.WebviewView) {
         this._view = webviewView;
 
         webviewView.webview.options = {
@@ -16,7 +18,10 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
             localResourceRoots: [this._extensionUri],
         };
 
-        webviewView.webview.html = this._getHtmlForWebview(webviewView.webview);
+        const openRouterKey = await getOpenRouterKey(this._context);
+        const openRouterModel = this._context.globalState.get<string>('openRouterModel') || '';
+
+        webviewView.webview.html = this._getHtmlForWebview(webviewView.webview, openRouterKey, openRouterModel);
 
         webviewView.webview.onDidReceiveMessage(async (data) => {
             switch (data.type) {
@@ -31,6 +36,14 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
                     if (!data.baseBranch || !data.featureBranch) {
                         return;
                     }
+                    // Persist OpenRouter configuration if provided
+                    if (data.orKey) {
+                        await setOpenRouterKey(this._context, data.orKey);
+                    }
+                    if (data.orModel) {
+                        await this._context.globalState.update('openRouterModel', data.orModel);
+                    }
+
                     vscode.commands.executeCommand(
                         "react-review.auditBranchDiff",
                         data.baseBranch,
@@ -62,7 +75,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
         this._view = panel;
     }
 
-    private _getHtmlForWebview(webview: vscode.Webview) {
+    private _getHtmlForWebview(webview: vscode.Webview, initialKey: string | undefined, initialModel: string) {
         const styleResetUri = webview.asWebviewUri(
             vscode.Uri.joinPath(this._extensionUri, "media", "reset.css")
         );
@@ -106,8 +119,8 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 
         <div class="input-group">
           <label>OpenRouter Configuration (Optional)</label>
-          <input type="text" id="or-model" placeholder="Model (e.g., google/gemini-flash-1.5)" />
-          <input type="password" id="or-key" placeholder="OpenRouter API Key" />
+          <input type="text" id="or-model" placeholder="Model (e.g., google/gemini-flash-1.5)" value="${initialModel}" />
+          <input type="password" id="or-key" placeholder="OpenRouter API Key" value="${initialKey || ''}" />
         </div>
 
         <button id="run-review">Run AI Review</button>

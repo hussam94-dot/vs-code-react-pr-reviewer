@@ -27,7 +27,7 @@ export function activate(context: vscode.ExtensionContext) {
     }
 
     // Register Sidebar Provider
-    const sidebarProvider = new SidebarProvider(context.extensionUri, getBranches);
+    const sidebarProvider = new SidebarProvider(context.extensionUri, getBranches, context);
     context.subscriptions.push(
         vscode.window.registerWebviewViewProvider(
             "react-reviewer-sidebar",
@@ -212,7 +212,9 @@ export function activate(context: vscode.ExtensionContext) {
 
                         const severity = item.severity === 'error'
                             ? vscode.DiagnosticSeverity.Error
-                            : vscode.DiagnosticSeverity.Warning;
+                            : item.severity === 'warning'
+                                ? vscode.DiagnosticSeverity.Warning
+                                : vscode.DiagnosticSeverity.Information;
 
                         return new vscode.Diagnostic(range, item.message, severity);
                     });

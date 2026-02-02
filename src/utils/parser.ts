@@ -5,7 +5,7 @@
 export interface DiagnosticItem {
     line: number;
     message: string;
-    severity: 'error' | 'warning';
+    severity: 'error' | 'warning' | 'info';
 }
 
 export interface AIReviewResponse {
@@ -74,6 +74,6 @@ function isDiagnosticItem(item: any): item is DiagnosticItem {
         item.line > 0 &&
         typeof item.message === 'string' &&
         item.message.length > 0 &&
-        (item.severity === 'error' || item.severity === 'warning')
+        (item.severity === 'error' || item.severity === 'warning' || item.severity === 'info')
     );
 }

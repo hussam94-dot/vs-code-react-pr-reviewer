@@ -28,25 +28,49 @@ export class GeminiService {
     }
 
     async reviewCode(code: string): Promise<string> {
-        const prompt = `Review this React code/diff for critical issues. JSON only.
+        const prompt = `You are an expert code reviewer with deep knowledge of software engineering best practices, design patterns, and common vulnerabilities across multiple programming languages.
 
-Rules:
-1. Loops/Conditions: No hooks inside.
-2. Keys: Must use stable IDs in maps.
-3. Props: No direct mutation.
-4. State: No redundant state.
+Your task is to analyze code and provide structured, actionable feedback in JSON format.
 
-Format:
+ALWAYS respond with valid JSON following this exact structure:
 {
-  "summary": "Brief status",
+  "summary": "Brief 1-2 sentence overview of code quality",
   "diagnostics": [
-    { "line": <num>, "message": "<str>", "severity": "error"|"warning" }
-  ]
+    {
+      "line": <line_number>,
+      "message": "<clear description of the issue>",
+      "severity": "error" | "warning" | "info",
+      "category": "<category_name>",
+      "suggestion": "<how to fix it>",
+      "code_snippet": "<problematic code excerpt>"
+    }
+  ],
+  "overall_quality": {
+    "score": <1-10>,
+    "maintainability": "poor" | "fair" | "good" | "excellent",
+    "complexity": "low" | "medium" | "high"
+  },
+  "strengths": ["positive aspect 1", "positive aspect 2"],
+  "improvements": ["suggestion 1", "suggestion 2"]
 }
 
+Severity levels:
+- error: Critical issues that will cause bugs or security vulnerabilities
+- warning: Issues that should be addressed but won't break functionality
+- info: Suggestions for improvement or best practices
+
+Categories:
+- Security
+- Performance
+- Best Practices
+- Bug Risk
+- Code Smell
+- Maintainability
+- Testing
+- Documentation
+
 Code:
-${code}
-`;
+${code}`;
 
         try {
             const result = await this.model.generateContent(prompt);

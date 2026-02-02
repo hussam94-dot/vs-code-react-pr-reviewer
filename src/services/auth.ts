@@ -22,3 +22,13 @@ export async function setApiKey(context: vscode.ExtensionContext, key: string): 
 export async function deleteApiKey(context: vscode.ExtensionContext): Promise<void> {
     await context.secrets.delete(API_KEY_SECRET);
 }
+
+const OPENROUTER_KEY_SECRET = 'openRouterApiKey';
+
+export async function getOpenRouterKey(context: vscode.ExtensionContext): Promise<string | undefined> {
+    return await context.secrets.get(OPENROUTER_KEY_SECRET);
+}
+
+export async function setOpenRouterKey(context: vscode.ExtensionContext, key: string): Promise<void> {
+    await context.secrets.store(OPENROUTER_KEY_SECRET, key);
+}
