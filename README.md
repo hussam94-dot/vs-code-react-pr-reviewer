@@ -1,4 +1,4 @@
-# CodeHawk AI
+#  HUSSAM-CodeHawk AI
 > **Eagle eyes for your code 🦅**
 
 **CodeHawk AI** is your intelligent coding companion, designed to streamline Pull Request reviews and elevate code quality. It catches bugs, security vulnerabilities, and performance bottlenecks before they merge.
